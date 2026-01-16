@@ -1,0 +1,6 @@
+
+{
+  "name": "AIDesign",
+  "description": "An AI-powered UI design tool that transforms natural language descriptions into diverse, high-fidelity UI layouts using Gemini.",
+  "requestFramePermissions": []
+}
