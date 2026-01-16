@@ -1,0 +1,9 @@
+# See https://vitejs.dev/config/ for more information
+build:
+  commands:
+    - npm install
+    - npm run build
+
+deploy:
+  output_dir: dist
+  static: true
