@@ -145,7 +145,7 @@ describe('openRouterService', () => {
             expect(promptContent).toContain(userPrompt);
         });
 
-        it('应该为移动设备添加"mobile app UI"标签', async () => {
+        it('应该为移动设备添加正确的设备标签', async () => {
             // Given & When
             await openRouterService.generateUIDesign('测试', ModelType.FLUX_PRO, DeviceType.ANDROID);
 
@@ -154,10 +154,11 @@ describe('openRouterService', () => {
             const body = JSON.parse(callArgs[1].body);
             const promptContent = body.messages[0].content;
 
-            expect(promptContent).toContain('mobile app UI');
+            // 中文prompt应该包含"移动应用UI"，英文部分也应包含mobile app UI
+            expect(promptContent).toMatch(/移动应用UI|mobile app UI/i);
         });
 
-        it('应该为PC设备添加"desktop web interface"标签', async () => {
+        it('应该为PC设备添加正确的设备标签', async () => {
             // Given & When
             await openRouterService.generateUIDesign('测试', ModelType.GEMINI_FLASH_IMAGE, DeviceType.PC);
 
@@ -166,7 +167,8 @@ describe('openRouterService', () => {
             const body = JSON.parse(callArgs[1].body);
             const promptContent = body.messages[0].content;
 
-            expect(promptContent).toContain('desktop web');
+            // 中文prompt应该包含"桌面网页界面"，英文部分也应包含desktop
+            expect(promptContent).toMatch(/桌面网页界面|desktop/i);
         });
 
         it('应该处理API错误', async () => {

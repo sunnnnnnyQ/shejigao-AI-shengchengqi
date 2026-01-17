@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { DeviceType, ModelType, OptimizedPrompt, GeneratedDesign, GenerationGroup } from './types';
+import { DeviceType, ModelType, OptimizedPrompt, GeneratedDesign, GenerationGroup, ReferenceImage, Language } from './types';
 import * as aiService from './services/aiService';
 import { storageService } from './services/storageService';
 import Header from './components/Header';
@@ -11,6 +11,7 @@ import HistoryView from './components/HistoryView';
 import FavoritesView from './components/FavoritesView';
 import SettingsView from './components/SettingsView';
 import LoadingOverlay from './components/LoadingOverlay';
+import ReferenceImageUpload from './components/ReferenceImageUpload';
 
 type View = 'home' | 'results' | 'history' | 'favorites' | 'settings';
 
@@ -20,6 +21,8 @@ const App: React.FC = () => {
   const [device, setDevice] = useState<DeviceType>(DeviceType.IPHONE);
   const [selectedModels, setSelectedModels] = useState<ModelType[]>([ModelType.GEMINI_FLASH_IMAGE]);
   const [optimizedPrompts, setOptimizedPrompts] = useState<OptimizedPrompt[]>([]);
+  const [referenceImages, setReferenceImages] = useState<ReferenceImage[]>([]);
+  const [language, setLanguage] = useState<Language>(Language.CHINESE);
 
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -55,6 +58,7 @@ const App: React.FC = () => {
         if (newView === 'home') {
           setOptimizedPrompts([]);
           setGroupedResults([]);
+          setReferenceImages([]);
         }
       } else {
         // 安全兜底：如果hash不合法，返回home
@@ -76,7 +80,7 @@ const App: React.FC = () => {
     if (!userInput.trim()) return;
     setIsOptimizing(true);
     try {
-      const refined = await aiService.optimizePrompts(userInput);
+      const refined = await aiService.optimizePrompts(userInput, language);
       setOptimizedPrompts(refined);
     } catch (error) {
       console.error("优化提示词失败", error);
@@ -96,7 +100,7 @@ const App: React.FC = () => {
     }
 
     setIsGenerating(true);
-    setCurrentView('results');
+    navigateToView('results');
     setGroupedResults([]);
 
     try {
@@ -107,7 +111,7 @@ const App: React.FC = () => {
       for (const model of selectedModels) {
         for (const opt of optimizedPrompts) {
           try {
-            const imageUrl = await aiService.generateUIDesign(opt.content, model, device);
+            const imageUrl = await aiService.generateUIDesign(opt.content, model, device, referenceImages, language);
             const design: GeneratedDesign = {
               id: Math.random().toString(36).substring(7),
               url: imageUrl,
@@ -116,7 +120,9 @@ const App: React.FC = () => {
               model: model,
               timestamp: Date.now(),
               device: device,
-              isFavorite: false
+              isFavorite: false,
+              referenceImages: referenceImages.length > 0 ? referenceImages : undefined,
+              language: language
             };
             allNewDesigns.push(design);
 
@@ -158,6 +164,7 @@ const App: React.FC = () => {
     setCurrentView('home');
     setOptimizedPrompts([]);
     setGroupedResults([]);
+    setReferenceImages([]);
     window.history.pushState({}, '', '#home');
   };
 
@@ -204,6 +211,14 @@ const App: React.FC = () => {
                 setDevice={setDevice}
                 selectedModels={selectedModels}
                 setSelectedModels={setSelectedModels}
+                language={language}
+                setLanguage={setLanguage}
+              />
+
+              {/* 参考图上传 */}
+              <ReferenceImageUpload
+                images={referenceImages}
+                onChange={setReferenceImages}
               />
 
               {optimizedPrompts.length > 0 && (

@@ -1,4 +1,4 @@
-import { DeviceType, ModelType } from '../types';
+import { DeviceType, ModelType, Language } from '../types';
 import { apiKeyService } from './apiKeyService';
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
@@ -81,18 +81,42 @@ export async function generateText(prompt: string, model: string = 'google/gemin
 
 /**
  * 构建图像生成提示词
+ * 根据选择的语言生成对应语言的UI
  */
-function buildImagePrompt(userPrompt: string, device: DeviceType): string {
-    // 根据设备类型确定宽高比和标签
+function buildImagePrompt(userPrompt: string, device: DeviceType, language: Language): string {
+    // 根据设备类型确定宽高比
     const isDesktop = device === DeviceType.PC;
     const aspectRatio = isDesktop ? '16:9' : '9:16';
-    const deviceTag = isDesktop ? 'desktop web interface' : 'mobile app UI';
 
-    // 构建增强提示词
-    return `Create a high-quality UI design for a ${deviceTag}. ${userPrompt}. 
-The design should be modern, professional, and pixel-perfect. 
-Aspect ratio: ${aspectRatio}. 
-Style: clean, minimalist, with attention to typography, spacing, and visual hierarchy.`;
+    if (language === Language.CHINESE) {
+        const deviceTag = isDesktop ? '桌面网页界面' : '移动应用UI';
+        // 中文模式：明确要求生成中文UI
+        return `请创建一个高质量的${deviceTag}设计。设计需求：${userPrompt}
+
+**重要要求：**
+- 界面中的所有文字必须使用中文（按钮文字、标题、说明文字等）
+- 采用现代、专业、像素完美的设计风格
+- 宽高比：${aspectRatio}
+- 风格：简洁、现代、注重排版、间距和视觉层次
+- 使用易读的中文字体
+- 确保文字清晰可读
+
+UI design for a ${deviceTag}. ${userPrompt}. All text in the interface MUST be in Chinese characters. Modern, professional design with ${aspectRatio} aspect ratio.`;
+    } else {
+        const deviceTag = isDesktop ? 'desktop web interface' : 'mobile app UI';
+        // 英文模式：生成英文UI  
+        return `Create a high-quality UI design for a ${deviceTag}. ${userPrompt}. 
+
+**Important Requirements:**
+- All text in the interface must be in English (button text, titles, descriptions, etc.)
+- The design should be modern, professional, and pixel-perfect
+- Aspect ratio: ${aspectRatio}
+- Style: clean, minimalist, with attention to typography, spacing, and visual hierarchy
+- Use readable English fonts
+- Ensure text is clear and legible
+
+All interface text MUST be in English. Modern, professional ${deviceTag} design with ${aspectRatio} aspect ratio.`;
+    }
 }
 
 /**
@@ -101,7 +125,9 @@ Style: clean, minimalist, with attention to typography, spacing, and visual hier
 export async function generateUIDesign(
     prompt: string,
     model: ModelType,
-    device: DeviceType
+    device: DeviceType,
+    referenceImages?: { base64: string }[],
+    language: Language = Language.CHINESE
 ): Promise<string> {
     const apiKey = getApiKey();
 
@@ -111,15 +137,31 @@ export async function generateUIDesign(
     }
 
     // 构建增强提示词
-    const enhancedPrompt = buildImagePrompt(prompt, device);
+    const enhancedPrompt = buildImagePrompt(prompt, device, language);
+
+    // 构建消息内容
+    // 如果有参考图，使用多模态格式（content数组）
+    // 否则使用简单字符串格式
+    const messageContent = referenceImages && referenceImages.length > 0
+        ? [
+            { type: 'text' as const, text: enhancedPrompt },
+            ...referenceImages.map(img => ({
+                type: 'image_url' as const,
+                image_url: {
+                    url: img.base64,
+                    detail: 'high' as const
+                }
+            }))
+        ]
+        : enhancedPrompt;
 
     // 准备API请求
     const requestBody = {
         model: model, // 直接使用 ModelType 值，如 'openai/dall-e-3'
         messages: [
             {
-                role: 'user',
-                content: enhancedPrompt,
+                role: 'user' as const,
+                content: messageContent,
             },
         ],
     };

@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { DeviceType, ModelType } from '../types';
+import { DeviceType, ModelType, Language, LANGUAGE_LABELS } from '../types';
 
 interface PromptInputProps {
   value: string;
@@ -11,6 +11,8 @@ interface PromptInputProps {
   setDevice: (d: DeviceType) => void;
   selectedModels: ModelType[];
   setSelectedModels: (m: ModelType[]) => void;
+  language: Language;
+  setLanguage: (l: Language) => void;
 }
 
 const PromptInput: React.FC<PromptInputProps> = ({
@@ -21,7 +23,9 @@ const PromptInput: React.FC<PromptInputProps> = ({
   device,
   setDevice,
   selectedModels,
-  setSelectedModels
+  setSelectedModels,
+  language,
+  setLanguage
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -104,6 +108,24 @@ const PromptInput: React.FC<PromptInputProps> = ({
           </div>
         </div>
 
+        {/* 语言选择 */}
+        <div className="space-y-4">
+          <label className="text-sm font-semibold text-slate-400 uppercase tracking-widest ml-1">界面语言</label>
+          <div className="flex bg-slate-950/50 p-1.5 rounded-2xl border border-slate-800 w-full overflow-hidden">
+            {Object.values(Language).map((lang) => (
+              <button
+                key={lang}
+                onClick={() => setLanguage(lang)}
+                className={`flex-1 px-4 py-3 rounded-xl text-sm font-bold transition-all ${language === lang ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-500 hover:text-slate-300'}`}
+              >
+                {LANGUAGE_LABELS[lang]}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-10"  >
         {/* 模型选择（增强下拉多选） */}
         <div className="space-y-4 relative" ref={dropdownRef}>
           <div className="flex justify-between items-center">
